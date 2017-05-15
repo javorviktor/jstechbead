@@ -1,9 +1,12 @@
 const express = require('express')
 const bodyParser = require('body-parser')
 const app = express()
+const PORT = 80
 var Kodolo = require('caesar-ciphers').defaultCipher;
+
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
+app.use(express.static('public'))
 
 var currEltolas = 3
 var kulcsok = [{
@@ -30,14 +33,32 @@ function kovetkezoEltolas() {
 }
 
 function onlyEnglishChars(input) {
-    // var regex = new RegExp('/^[a-zA-Z]+$/')
-    return input.match(/^[a-zA-Z]+$/gi)
+    return input.match(/^[a-zA-Z\ ]+$/gi)
 }
+
+app.use(function (req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+});
 
 app.post('/api', (req, res) => {
     var tipus = req.body.tipus
     var kulcs = req.body.kulcs
-    var szoveg = req.body.szoveg
+    var szoveg = req.body.szoveg.trim()
+
+    if (szoveg.length == 0) {
+        res.status(400).json({
+            status: 'Empty text'
+        })
+        return
+    }
+    if (onlyEnglishChars(szoveg) == null) {
+        res.status(400).json({
+            status: 'Illegal characters in text (allowed: Letters of the english alphabet, whitespace)'
+        })
+        return
+    }
 
     var helyesE = tipus && kulcs && szoveg &&
         (tipus == 'encode' || tipus == 'decode') &&
@@ -53,6 +74,7 @@ app.post('/api', (req, res) => {
                 res.status(200).json({
                     kodoltSzoveg
                 })
+                return
             } else {
                 eltolas = kovetkezoEltolas()
                 kulcsok.push({
@@ -64,32 +86,29 @@ app.post('/api', (req, res) => {
                 res.status(200).json({
                     kodoltSzoveg
                 })
+                return
             }
         } else if (tipus == 'decode') {
             if (eltolas != -1) {
-                //res.send("ISMERT!! (decode)")
                 var kodolo = new Kodolo(eltolas)
                 var dekodoltSzoveg = kodolo.decrypt(szoveg)
                 res.status(200).json({
                     dekodoltSzoveg
                 })
+                return
             } else {
                 res.status(403).json({
                     status: 'Unknown password'
                 })
+                return
             }
         }
     } else {
         res.status(400).json({
             status: 'Bad Request'
         })
+        return
     }
 })
 
-app.get('*', (req, res) => {
-    res.status(404).json({
-        status: 'Not Found'
-    })
-})
-
-app.listen(3000)
+app.listen(PORT)
