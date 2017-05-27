@@ -10,12 +10,15 @@ class PasswordForm extends Component {
     }
     render() {
         return (
-            <input type="text" placeholder="Password"
+        <div>
+            <h1> CAESAR CIPHER </h1>        
+            <input id="key" type="text" placeholder="Enter your key here!"
                 onChange={(e) => {
                     this.setState({ password: e.target.value })
                 }}
                 onKeyPress={e => { if (e.key == 'Enter') this.submit() }}
             />
+        </div>
         )
     }
 }
